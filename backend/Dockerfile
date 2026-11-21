@@ -1,4 +1,3 @@
-cat > backend/Dockerfile <<'EOF'
 FROM node:20-alpine
 
 WORKDIR /app
@@ -12,4 +11,3 @@ COPY . .
 EXPOSE 8000
 
 CMD ["npm", "start"]
-EOF
