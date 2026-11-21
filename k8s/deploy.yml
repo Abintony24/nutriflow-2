@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nutriflow-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nutriflow-backend
+  template:
+    metadata:
+      labels:
+        app: nutriflow-backend
+    spec:
+      containers:
+        - name: backend
+          image: abintony/nutriflow-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: PORT
+              value: "8000"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: nutriflow-secrets
+                  key: MONGO_URI
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nutriflow-secrets
+                  key: GEMINI_API_KEY
+            - name: GEMINI_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: nutriflow-secrets
+                  key: GEMINI_MODEL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nutriflow-secrets
+                  key: JWT_SECRET
+            - name: MESSAGECENTRAL_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: nutriflow-secrets
+                  key: MESSAGECENTRAL_AUTH_TOKEN
+            - name: MESSAGECENTRAL_CUSTOMER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: nutriflow-secrets
+                  key: MESSAGECENTRAL_CUSTOMER_ID
+            - name: KITCHEN_LAT
+              valueFrom:
+                secretKeyRef:
+                  name: nutriflow-secrets
+                  key: KITCHEN_LAT
+            - name: KITCHEN_LNG
+              valueFrom:
+                secretKeyRef:
+                  name: nutriflow-secrets
+                  key: KITCHEN_LNG
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nutriflow-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nutriflow-frontend
+  template:
+    metadata:
+      labels:
+        app: nutriflow-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: abintony/nutriflow-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80

@@ -2,12 +2,13 @@ pipeline {
     agent any
 
     options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 45, unit: 'MINUTES')
     }
 
     environment {
         BACKEND_IMAGE = 'abintony/nutriflow-backend'
         FRONTEND_IMAGE = 'abintony/nutriflow-frontend'
+        GITHUB_REPO = 'https://github.com/Abintony24/nutriflow-2.git'
     }
 
     stages {
@@ -26,6 +27,8 @@ pipeline {
                     test -f backend/Dockerfile
                     test -f frontend/Dockerfile
                     test -f docker-compose.yml
+                    test -f k8s/deploy.yml
+                    test -f k8s/service.yml
 
                     echo "Project file checks passed."
                 '''
@@ -40,7 +43,7 @@ pipeline {
             }
         }
 
-        stage('Trivy - Security Scan') {
+        stage('Trivy - Filesystem Scan') {
             steps {
                 sh '''
                     trivy fs --scanners vuln,misconfig,secret .
@@ -57,10 +60,19 @@ pipeline {
                       ./backend
 
                     docker build \
-                      --build-arg VITE_API_URL="${VITE_API_URL:-}" \
+                      --build-arg VITE_API_URL="${VITE_API_URL}" \
                       -t ${FRONTEND_IMAGE}:${BUILD_NUMBER} \
                       -t ${FRONTEND_IMAGE}:latest \
                       ./frontend
+                '''
+            }
+        }
+
+        stage('Trivy - Docker Image Scan') {
+            steps {
+                sh '''
+                    trivy image ${BACKEND_IMAGE}:${BUILD_NUMBER}
+                    trivy image ${FRONTEND_IMAGE}:${BUILD_NUMBER}
                 '''
             }
         }
@@ -83,15 +95,57 @@ pipeline {
                 }
             }
         }
+
+        stage('Update Deployment Files') {
+            steps {
+                withCredentials([
+                    string(
+                        credentialsId: 'github-token',
+                        variable: 'GITHUB_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+
+                        git config user.name "abintony24"
+                        git config user.email "abintony24@gmail.com"
+
+                        sed -i \
+                          "s|image: abintony/nutriflow-backend:.*|image: abintony/nutriflow-backend:${BUILD_NUMBER}|" \
+                          k8s/deploy.yml
+
+                        sed -i \
+                          "s|image: abintony/nutriflow-frontend:.*|image: abintony/nutriflow-frontend:${BUILD_NUMBER}|" \
+                          k8s/deploy.yml
+
+                        git add k8s/deploy.yml
+
+                        if git diff --cached --quiet; then
+                            echo "No deployment file changes."
+                            exit 0
+                        fi
+
+                        git commit -m "Update Nutriflow images to build ${BUILD_NUMBER}"
+
+                        AUTH=$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w 0)
+
+                        git -c http.extraheader="AUTHORIZATION: basic ${AUTH}" \
+                            push "$GITHUB_REPO" HEAD:main
+
+                        unset AUTH
+                    '''
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo 'Nutriflow pipeline completed successfully!'
+            echo 'Nutriflow CI/CD pipeline completed successfully!'
         }
 
         failure {
-            echo 'Pipeline failed. Check Console Output.'
+            echo 'Pipeline failed. Check Console Output for the failed stage.'
         }
 
         always {
