@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: abintony/nutriflow-backend:latest
+          image: abintony/nutriflow-backend:6
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
@@ -79,7 +79,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: abintony/nutriflow-frontend:latest
+          image: abintony/nutriflow-frontend:6
           imagePullPolicy: Always
           ports:
             - containerPort: 80
