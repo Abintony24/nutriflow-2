@@ -1,0 +1,30 @@
+services:
+  backend:
+    build: ./backend
+    container_name: nutriflow-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: 8000
+      MONGO_URI: ${MONGO_URI}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL}
+      JWT_SECRET: ${JWT_SECRET}
+      MESSAGECENTRAL_AUTH_TOKEN: ${MESSAGECENTRAL_AUTH_TOKEN}
+      MESSAGECENTRAL_CUSTOMER_ID: ${MESSAGECENTRAL_CUSTOMER_ID}
+      KITCHEN_LAT: ${KITCHEN_LAT}
+      KITCHEN_LNG: ${KITCHEN_LNG}
+      FRONTEND_IMAGE_BASE_URL: ${FRONTEND_IMAGE_BASE_URL}
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    container_name: nutriflow-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
